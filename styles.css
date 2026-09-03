@@ -400,11 +400,41 @@ html, body {
 /* ================= GAME-STYLE HUD OVERLAY (floats, no reserved space) ================= */
 .hud {
   position: fixed; left: 16px; bottom: 16px; z-index: 55;
-  width: 288px; max-height: 32vh;
-  display: flex; flex-direction: column; gap: 8px;
+  width: 288px; max-height: 38vh;
+  display: flex; flex-direction: column; gap: 0;
   pointer-events: none;
 }
-.hud > * { pointer-events: auto; }
+.hud.dragging { transition: none; }
+.hud.dragging .hud-section { box-shadow: 0 18px 44px rgba(26,33,48,.35); }
+
+/* grip / drag handle */
+.hud-grip {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; margin-bottom: 4px;
+  background: rgba(255,255,255,0.88); backdrop-filter: blur(10px);
+  border: 1px solid var(--line); border-radius: 8px;
+  cursor: grab; user-select: none; touch-action: none;
+  box-shadow: var(--shadow);
+}
+.hud-grip:active { cursor: grabbing; }
+.hud-grip-dots {
+  width: 14px; height: 10px; flex-shrink: 0;
+  background-image: radial-gradient(circle, var(--text-faint) 1.4px, transparent 1.4px);
+  background-size: 5px 5px;
+}
+.hud-grip-label { font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); flex: 1; }
+.hud-min {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 5px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--text-dim);
+  font-size: 13px; line-height: 1; padding: 0;
+}
+.hud-min:hover { border-color: var(--accent); color: var(--accent); }
+
+.hud-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.hud.minimized .hud-body { display: none; }
+.hud.minimized { width: auto; max-height: none; }
+.hud-body > * { pointer-events: auto; }
 .hud-section {
   background: rgba(255,255,255,0.88); backdrop-filter: blur(10px);
   border: 1px solid var(--line); border-radius: var(--radius-sm);

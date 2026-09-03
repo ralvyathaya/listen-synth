@@ -53,6 +53,85 @@
     hudToggle.addEventListener("click", () => hud.classList.toggle("open"));
     // collapse HUD with Escape
     window.addEventListener("keydown", (e) => { if (e.key === "Escape") hud.classList.remove("open"); });
+    initHudDrag(hud);
+  }
+
+  /* ---------- HUD: draggable + minimizable + position memory ---------- */
+  function initHudDrag(hud) {
+    const grip = document.getElementById("hud-grip");
+    const minBtn = document.getElementById("hud-min");
+    if (!grip || !hud) return;
+
+    const KEY = "listen-synth:hud-pos";
+    const DEFAULT = { left: 16, top: null }; // null top = docked to bottom
+
+    function save(pos) { try { localStorage.setItem(KEY, JSON.stringify(pos)); } catch (_) {} }
+    function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (_) { return null; } }
+
+    function applyPos(pos) {
+      if (!pos) { hud.style.left = ""; hud.style.top = ""; hud.style.right = ""; hud.style.bottom = ""; return; }
+      hud.style.left = pos.left + "px";
+      if (pos.top == null) { hud.style.top = ""; hud.style.bottom = "16px"; }
+      else { hud.style.top = pos.top + "px"; hud.style.bottom = "auto"; }
+      hud.style.right = "auto";
+    }
+    applyPos(load());
+
+    // clamp inside viewport (handles zoom/resize: keep it reachable)
+    function clampToViewport() {
+      const r = hud.getBoundingClientRect();
+      const pad = 4;
+      let left = Math.min(Math.max(r.left, pad), window.innerWidth - r.width - pad);
+      let top = Math.min(Math.max(r.top, pad), window.innerHeight - 60 - pad);
+      hud.style.left = left + "px";
+      hud.style.top = top + "px";
+      hud.style.bottom = "auto";
+      save({ left, top });
+    }
+    window.addEventListener("resize", () => { if (load()) clampToViewport(); });
+
+    grip.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("button")) return;
+      e.preventDefault();
+      hud.classList.add("dragging");
+      const r = hud.getBoundingClientRect();
+      const offX = e.clientX - r.left;
+      const offY = e.clientY - r.top;
+
+      const move = (ev) => {
+        const pad = 4;
+        let left = ev.clientX - offX;
+        let top = ev.clientY - offY;
+        left = Math.min(Math.max(left, pad - r.width + 60), window.innerWidth - 60); // allow slight offscreen but keep grip reachable
+        top = Math.min(Math.max(top, pad), window.innerHeight - 40);
+        hud.style.left = left + "px";
+        hud.style.top = top + "px";
+        hud.style.bottom = "auto";
+      };
+      const up = () => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        hud.classList.remove("dragging");
+        const r2 = hud.getBoundingClientRect();
+        save({ left: r2.left, top: r2.top });
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+    });
+
+    // double-click grip: snap back to default dock
+    grip.addEventListener("dblclick", () => {
+      save(null); try { localStorage.removeItem(KEY); } catch (_) {}
+      applyPos(null);
+      hud.style.bottom = "16px";
+    });
+
+    // minimize toggle
+    minBtn.addEventListener("click", () => {
+      const min = hud.classList.toggle("minimized");
+      minBtn.textContent = min ? "+" : "–";
+      minBtn.title = min ? "Expand panel" : "Collapse panel";
+    });
   }
 
   function boot() {

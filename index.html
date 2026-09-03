@@ -143,15 +143,22 @@
     <ul id="takes-list" class="takes-list"></ul>
   </section>
 
-  <!-- ============ GAME-STYLE HUD OVERLAY (bottom-left, floats, fading) ============ -->
+  <!-- ============ GAME-STYLE HUD OVERLAY (draggable, collapsible, fading) ============ -->
   <aside id="hud" class="hud" aria-label="Agent tools and activity">
-    <div class="hud-section hud-tools">
-      <div class="hud-title">🤖 agent tools <span id="tool-count" class="tool-count">0</span></div>
-      <ul id="tool-list" class="tool-list"></ul>
+    <div class="hud-grip" id="hud-grip" title="Drag to move · double-click to snap back" aria-label="Drag to move panel">
+      <span class="hud-grip-dots" aria-hidden="true"></span>
+      <span class="hud-grip-label">agent</span>
+      <button id="hud-min" class="hud-min" title="Collapse panel" aria-label="Collapse panel">–</button>
     </div>
-    <div class="hud-section hud-activity">
-      <div class="hud-title">activity</div>
-      <ul id="activity-feed" class="activity-feed"></ul>
+    <div class="hud-body">
+      <div class="hud-section hud-tools">
+        <div class="hud-title">🤖 agent tools <span id="tool-count" class="tool-count">0</span></div>
+        <ul id="tool-list" class="tool-list"></ul>
+      </div>
+      <div class="hud-section hud-activity">
+        <div class="hud-title">activity</div>
+        <ul id="activity-feed" class="activity-feed"></ul>
+      </div>
     </div>
     <div class="hud-fade" aria-hidden="true"></div>
   </aside>
