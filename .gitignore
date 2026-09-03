@@ -1,0 +1,13 @@
+# Internal submission docs — kept private, not for the public repo
+DEVPOST_FIELDS.md
+SUBMISSION.md
+PROJECT_STORY.md
+VIDEO_SCRIPT.md
+
+# Test scaffolding
+test*.html
+
+# OS / editor cruft
+Thumbs.db
+.DS_Store
+*.log
