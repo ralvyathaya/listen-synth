@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LISTEN — the synth your agent can hear</title>
+  <meta name="description" content="A Web Audio synthesizer your AI agent can actually listen to — analyze its own output in real time, then shape the sound with you, in natural language. Accessible sound design for everyone." />
+
+  <!-- WebMCP polyfill (MCP-B): native when available, polyfill elsewhere. PINNED for stability. -->
+  <script src="https://unpkg.com/@mcp-b/global@5.1.0/dist/index.iife.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>" />
+</head>
+<body>
+  <!-- ============ WEB-ISH TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🎧</span>
+      <h1>LISTEN</h1>
+      <span class="tagline">the synth your agent can <em>hear</em></span>
+    </div>
+    <div class="topbar-status">
+      <span id="listen-indicator" class="listen-indicator" title="Agent is analyzing the synth output"><span class="ear">👂</span> agent listening</span>
+      <span id="webmcp-badge" class="badge badge-dim">WebMCP …</span>
+      <button id="start-demo" class="btn btn-demo" title="Guided 90-second journey through what this does">▶ START DEMO</button>
+      <button id="simplify-toggle" class="btn" aria-pressed="false" title="Plain-language controls">✨ Simple</button>
+      <button id="audio-start" class="btn btn-primary">▶ Enable audio</button>
+    </div>
+  </header>
+
+  <!-- ============ WEB-ISH: what the agent hears (top) ============ -->
+  <section id="hearing-panel" class="hearing-panel" aria-label="What the agent hears" aria-live="polite">
+    <div class="hearing-head">
+      <h2><span class="ear-big">👂</span> What the agent hears</h2>
+      <div class="hearing-head-right">
+        <span class="hearing-sub">real-time FFT analysis of the synth's own output</span>
+        <button id="hear-now" class="btn btn-mini">analyze now</button>
+      </div>
+    </div>
+    <div class="hearing-body">
+      <canvas id="hearing-ring" class="hearing-ring" width="96" height="96" aria-hidden="true"></canvas>
+      <div id="hearing" class="hearing">
+        <p class="dim">Play a note — then let your agent call <code>analyze_sound</code>, or click “analyze now”.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ONE MACHINE: sequencer → patch memory → synth ============ -->
+  <main class="machine-wrap" aria-label="Synthesizer">
+    <div class="machine">
+      <div class="cheek cheek-left" aria-hidden="true"></div>
+
+      <div class="machine-face">
+
+        <!-- ═══════ SEQUENCER (groovebox strip, full width) ═══════ -->
+        <section class="m-section seq-section" aria-label="Sequencer">
+          <div class="seq-head">
+            <span class="m-brand-mini">SEQUENCER&nbsp;//&nbsp;16</span>
+            <div class="seq-lcd" id="seq-info">NO&nbsp;PATTERN&nbsp;—&nbsp;ASK&nbsp;YOUR&nbsp;AGENT</div>
+            <div class="seq-transport">
+              <button id="seq-play" class="hw-btn hw-play" title="Play / stop the pattern">▶</button>
+              <button id="bounce-btn" class="hw-btn hw-accent" title="Bounce to WAV audio">⬇&nbsp;WAV</button>
+              <button id="vital-btn" class="hw-btn hw-vital" title="Export as a Vital preset (DAW-ready)">🎛️&nbsp;VITAL</button>
+              <button id="dna-btn" class="hw-btn" title="Generate Sound DNA card">🧬&nbsp;DNA</button>
+            </div>
+          </div>
+          <div id="seq-grid" class="seq-grid" aria-label="16-step pattern"></div>
+          <div class="seq-foot"><span class="m-engrave">STEP&nbsp;1–16&nbsp;·&nbsp;LED&nbsp;=&nbsp;NOTE&nbsp;·&nbsp;GREEN&nbsp;=&nbsp;PLAYHEAD</span></div>
+        </section>
+
+        <div class="m-divider" aria-hidden="true"></div>
+
+        <!-- ═══════ PATCH MEMORY (LCD unit, part of the machine) ═══════ -->
+        <section class="m-section patch-section" aria-label="Patch memory">
+          <div class="pu-header">
+            <span class="pu-title">PATCH&nbsp;MEMORY</span>
+            <span class="pu-led" aria-hidden="true"></span>
+            <span class="pu-model">BANK&nbsp;A</span>
+          </div>
+          <div class="pu-screen">
+            <div class="pu-screen-glare" aria-hidden="true"></div>
+            <div class="pu-readout" id="pu-readout">A04&nbsp;&nbsp;E.·PIANO</div>
+            <div id="preset-row" class="preset-row" role="listbox" aria-label="Presets"></div>
+          </div>
+          <div class="pu-footer">
+            <span class="pu-hint">SELECT&nbsp;PATCH&nbsp;·&nbsp;SAVED&nbsp;PATCHES&nbsp;BECOME&nbsp;AGENT&nbsp;TOOLS</span>
+          </div>
+        </section>
+
+        <div class="m-divider" aria-hidden="true"></div>
+
+        <!-- ═══════ SYNTH BODY ═══════ -->
+        <div class="faceplate-top">
+          <div class="brand-plate">
+            <span class="mp-name">LISTEN·1</span>
+            <span class="mp-sub">paraphonic listening synthesizer</span>
+          </div>
+          <div class="vis-block">
+            <canvas id="spectrum" class="vis" width="380" height="70" aria-label="Spectrum analyzer"></canvas>
+            <canvas id="oscilloscope" class="vis" width="380" height="70" aria-label="Oscilloscope"></canvas>
+          </div>
+        </div>
+
+        <!-- Simple mode (accessibility) -->
+        <div id="simple-panel" class="simple-panel" hidden>
+          <p class="simple-intro">No synth knowledge needed — say how it should feel.</p>
+          <div id="simple-sliders" class="simple-sliders"></div>
+        </div>
+
+        <div id="rack" class="rack">
+          <div class="module" id="osc-modules"></div>
+          <div class="module" id="filter-module"></div>
+          <div class="module" id="env-module"></div>
+          <div class="module" id="lfo-module"></div>
+          <div class="module" id="fx-module"></div>
+        </div>
+
+        <div class="keybed">
+          <div id="keyboard" class="keyboard" aria-label="Keyboard"></div>
+        </div>
+
+        <div class="keymap-strip" aria-hidden="true">
+          <div class="km-group"><span class="km-label">KEYS</span>
+            <span class="km-keys"><kbd>A</kbd><kbd>W</kbd><kbd>S</kbd><kbd>E</kbd><kbd>D</kbd><kbd>F</kbd><kbd>T</kbd><kbd>G</kbd><kbd>Y</kbd><kbd>H</kbd><kbd>U</kbd><kbd>J</kbd><kbd>K</kbd></span>
+          </div>
+          <div class="km-sep"></div>
+          <div class="km-group"><span class="km-label">OCTAVE</span>
+            <span class="km-keys"><kbd>Z</kbd><span class="km-sym">−</span><kbd>X</kbd><span class="km-sym">+</span></span>
+          </div>
+          <div class="km-sep"></div>
+          <div class="km-group km-agent"><span class="km-label">MIDI</span><span class="km-note">your agent can play too</span></div>
+        </div>
+      </div>
+
+      <div class="cheek cheek-right" aria-hidden="true"></div>
+    </div>
+  </main>
+
+  <!-- ============ WEB-ISH: takes (artifacts you keep) ============ -->
+  <section class="takes-bar" aria-label="Takes">
+    <div class="takes-head">TAKES <span class="hint-inline">— bounced audio &amp; sound DNA cards land here</span></div>
+    <ul id="takes-list" class="takes-list"></ul>
+  </section>
+
+  <!-- ============ GAME-STYLE HUD OVERLAY (bottom-left, floats, fading) ============ -->
+  <aside id="hud" class="hud" aria-label="Agent tools and activity">
+    <div class="hud-section hud-tools">
+      <div class="hud-title">🤖 agent tools <span id="tool-count" class="tool-count">0</span></div>
+      <ul id="tool-list" class="tool-list"></ul>
+    </div>
+    <div class="hud-section hud-activity">
+      <div class="hud-title">activity</div>
+      <ul id="activity-feed" class="activity-feed"></ul>
+    </div>
+    <div class="hud-fade" aria-hidden="true"></div>
+  </aside>
+  <button id="hud-toggle" class="hud-toggle" aria-label="Toggle agent panel" title="Agent panel">🤖</button>
+
+  <!-- ============ AGENT CONSOLE DRAWER (test tools without an agent) ============ -->
+  <button id="ac-toggle" class="ac-fab" title="Test every WebMCP tool without an external agent">🧪</button>
+  <aside id="agent-console" class="agent-console collapsed" aria-label="Agent Console">
+    <div class="acon-head">
+      <div class="acon-title">
+        🧪 Agent Console
+        <span class="acon-sub">drive the page's WebMCP tools directly — no external agent needed</span>
+      </div>
+      <span class="acon-count-badge"><span id="ac-count">0</span> tools</span>
+      <button id="ac-refresh" class="btn btn-mini" title="Refresh tool list">↻</button>
+      <button id="ac-close" class="btn btn-mini" title="Close">✕</button>
+    </div>
+    <div class="acon-scenarios">
+      <span class="acon-sc-label">quick flows:</span>
+      <button class="acon-chip" data-scenario="hear">👂 play + hear</button>
+      <button class="acon-chip" data-scenario="darker">🌑 darker → verify</button>
+      <button class="acon-chip" data-scenario="bounce">🎵 compose + bounce</button>
+    </div>
+    <div class="acon-body">
+      <ul id="ac-tool-list" class="ac-tool-list"></ul>
+      <div id="ac-form" class="ac-form"></div>
+    </div>
+  </aside>
+
+  <!-- ============ START DEMO: guided journey mini console (non-modal, bottom-right) ============ -->
+  <aside id="demo-panel" class="demo-panel" role="dialog" aria-label="Guided demo" hidden>
+    <div class="demo-progressbar"><div id="demo-progress" class="demo-progress"></div></div>
+    <div class="demo-panel-head">
+      <div class="demo-steps" id="demo-steps"></div>
+      <button id="demo-close" class="demo-x" title="Close demo (Esc)" aria-label="Close demo">✕</button>
+    </div>
+    <div class="demo-body">
+      <h3 id="demo-title" class="demo-title"></h3>
+      <p id="demo-desc" class="demo-desc"></p>
+      <div id="demo-hint" class="demo-hint"></div>
+    </div>
+    <div class="demo-actions">
+      <button id="demo-prev" class="btn btn-ghost">←</button>
+      <button id="demo-do" class="btn btn-primary">Do this step</button>
+      <button id="demo-next" class="btn">Next →</button>
+    </div>
+  </aside>
+
+  <!-- Screen-reader announcements (accessibility) -->
+  <div id="sr-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="js/activity.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/presets.js"></script>
+  <script src="js/composer.js"></script>
+  <script src="js/bounce.js"></script>
+  <script src="js/dnacard.js"></script>
+  <script src="js/vital.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/tools.js"></script>
+  <script src="js/devconsole.js"></script>
+  <script src="js/demo.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

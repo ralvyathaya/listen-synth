@@ -1,0 +1,15 @@
+# Netlify deploy config for LISTEN
+[build]
+  publish = "."
+
+# WebMCP requires an origin-isolated document (Chrome docs):
+# Origin-Agent-Cluster: ?1 keeps the origin stable for the tool lifetime.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Origin-Agent-Cluster = "?1"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow this page to be embedded/tested by agent harnesses if needed
+    # Permissions-Policy for WebMCP defaults to self; explicit is safer:
+    Permissions-Policy = "tools=(self)"
